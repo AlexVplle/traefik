@@ -1,0 +1,38 @@
+services:
+  traefik:
+    container_name: traefik
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DASHBOARD_URL}`)
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.middlewares=auth
+      - traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_USER_HASH}
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.tls.certresolver=myresolver
+    networks:
+      - traefik_network
+    volumes:
+      - ./traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_acme:/etc/traefik
+    environment:
+      - TRAEFIK_USER_HASH=${TRAEFIK_USER_HASH}
+      - EMAIL=${EMAIL}
+      - TRAEFIK_DASHBOARD_URL=${TRAEFIK_DASHBOARD_URL}
+
+volumes:
+  traefik_acme:
+
+networks:
+  traefik_network:
+    external: true
